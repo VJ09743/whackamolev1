@@ -54514,7 +54514,7 @@ s.push(A.d8(n.gVS(),0))
 n.mH()
 o.r=0
 for(r=s.length,q=0,p=0;q<r;++q){p+=B.h.dM(s[q].a,1000)
-o.r=p}s=p/r
+o.r=p}s=p/Math.max(1,r-1)
 o.r=s
 s/=1000
 o.r=s
