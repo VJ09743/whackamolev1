@@ -82,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
       for (var time in times){
         _avgtime += time.inMilliseconds;
       }
-      _avgtime /= times.length;
+      _avgtime /= max(1,(times.length-1));
       _avgtime /= 1e3;
       _avgtime *= 1000;
       _avgtime = _avgtime.round()/1000;
