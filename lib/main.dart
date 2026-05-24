@@ -2,9 +2,16 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  await Supabase.initialize(
+    url: 'https://ypnfuffzlroonssdweib.supabase.co',
+    anonKey: 'sb_publishable_lZBQWeKrUBH47DUaP5mMAg_u2zX9X1t',
+  );
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -36,13 +43,108 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const MyHomePage(title: 'WHACKAMOLE'),
+      home: loginpage(),
+    );
+  }
+}
+class loginpage extends StatefulWidget {
+  @override
+  State<loginpage> createState() => _loginpageState();
+}
+
+class _loginpageState extends State<loginpage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailcontroller = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  void submit() async {
+    if (_formKey.currentState!.validate()) {
+      final email = '${_emailcontroller.text}@whackamole.jorithm.net';
+      final password = _passwordController.text;
+      try {
+        await Supabase.instance.client.auth.signInWithPassword(password: password, email: email);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) =>
+              MyHomePage(
+                title: 'WHACKAMOLE', username: _emailcontroller.text,)),
+        );
+      }
+      catch (error){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString()),));
+      }
+    }
+  }
+  void signup() async {
+    if (_formKey.currentState!.validate()) {
+      final email = '${_emailcontroller.text}@whackamole.jorithm.net';
+      final password = _passwordController.text;
+      try {
+        await Supabase.instance.client.auth.signUp(password: password, email: email);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) =>
+              MyHomePage(
+                title: 'WHACKAMOLE', username: _emailcontroller.text,)),
+        );
+      }
+      catch (error){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString()),));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width / 2,
+          child: Card(
+            color: Colors.blueGrey,
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 10,
+                  children: [
+                    Text("Sign In", style: Theme.of(context).textTheme.headlineMedium),
+                    TextFormField(
+                      controller: _emailcontroller,
+                      decoration: InputDecoration(labelText: "Username", hint: Text("Not case sensitive"), border: OutlineInputBorder()),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Username is required';
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Password is required';
+                        return null;
+                      },
+                    ),
+                    FilledButton(onPressed: submit, child: Text("Sign In")),
+                    FilledButton(onPressed: signup, child: Text("Sign Up")),
+
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key, required this.title, required this.username});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -54,6 +156,8 @@ class MyHomePage extends StatefulWidget {
   // always marked "final".
 
   final String title;
+
+  final String username;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -68,6 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Random randy = Random();
   List<Duration> times = [];
   var stopwatch = Stopwatch();
+
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -79,16 +184,16 @@ class _MyHomePageState extends State<MyHomePage> {
       times.add(stopwatch.elapsed);
       stopwatch.reset();
       _avgtime = 0;
-      for (var time in times){
+      for (var time in times) {
         _avgtime += time.inMilliseconds;
       }
-      _avgtime /= max(1,(times.length-1));
+      _avgtime /= max(1, (times.length - 1));
       _avgtime /= 1e3;
       _avgtime *= 1000;
-      _avgtime = _avgtime.round()/1000;
+      _avgtime = _avgtime.round() / 1000;
       _counter++;
-      _x = randx.nextDouble()*100;
-      _y = randy.nextDouble()*100;
+      _x = randx.nextDouble() * 100;
+      _y = randy.nextDouble() * 100;
       stopwatch.start();
     });
   }
@@ -124,19 +229,33 @@ class _MyHomePageState extends State<MyHomePage> {
               // wireframe for each widget.
               mainAxisAlignment: .center,
               children: [
-                const Text('Whacked a Mole this many times:'),
+                Text(widget.username+' whacked a Mole this many times:'),
                 Text(
                   '$_counter',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const Text("Avg time taken:"),
-                Text('$_avgtime'+'s',
-                style: Theme.of(context).textTheme.headlineMedium,)
+                Text(
+                  '$_avgtime' + 's',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
               ],
             ),
           ),
-          Positioned(child:  SizedBox(height: sizse, width:sizse, child: GestureDetector(onTap: _incrementCounter, child: Image.asset("assets/mole.png"))), left: ((MediaQuery.of(context).size.width*_x/100)-(sizse/2)).clamp(0.0, (MediaQuery.of(context).size.width-(sizse))), top: ((MediaQuery.of(context).size.height*_y/100)-(sizse/2)).clamp(0.0, (MediaQuery.of(context).size.height -(sizse))),)
-
+          Positioned(
+            child: SizedBox(
+              height: sizse,
+              width: sizse,
+              child: GestureDetector(
+                onTap: _incrementCounter,
+                child: Image.asset("assets/mole.png"),
+              ),
+            ),
+            left: ((MediaQuery.of(context).size.width * _x / 100) - (sizse / 2))
+                .clamp(0.0, (MediaQuery.of(context).size.width - (sizse))),
+            top: ((MediaQuery.of(context).size.height * _y / 100) - (sizse / 2))
+                .clamp(0.0, (MediaQuery.of(context).size.height - (sizse))),
+          ),
         ],
       ),
     );
