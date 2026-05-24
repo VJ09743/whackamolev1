@@ -47,6 +47,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 class loginpage extends StatefulWidget {
   @override
   State<loginpage> createState() => _loginpageState();
@@ -62,34 +63,49 @@ class _loginpageState extends State<loginpage> {
       final email = '${_emailcontroller.text}@whackamole.jorithm.net';
       final password = _passwordController.text;
       try {
-        await Supabase.instance.client.auth.signInWithPassword(password: password, email: email);
+        await Supabase.instance.client.auth.signInWithPassword(
+          password: password,
+          email: email,
+        );
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) =>
-              MyHomePage(
-                title: 'WHACKAMOLE', username: _emailcontroller.text,)),
+          MaterialPageRoute(
+            builder: (context) => MyHomePage(
+              title: 'WHACKAMOLE',
+              username: _emailcontroller.text,
+            ),
+          ),
         );
-      }
-      catch (error){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString()),));
+      } catch (error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
+
   void signup() async {
     if (_formKey.currentState!.validate()) {
       final email = '${_emailcontroller.text}@whackamole.jorithm.net';
       final password = _passwordController.text;
       try {
-        await Supabase.instance.client.auth.signUp(password: password, email: email);
+        await Supabase.instance.client.auth.signUp(
+          password: password,
+          email: email,
+        );
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) =>
-              MyHomePage(
-                title: 'WHACKAMOLE', username: _emailcontroller.text,)),
+          MaterialPageRoute(
+            builder: (context) => MyHomePage(
+              title: 'WHACKAMOLE',
+              username: _emailcontroller.text,
+            ),
+          ),
         );
-      }
-      catch (error){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString()),));
+      } catch (error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
@@ -111,27 +127,38 @@ class _loginpageState extends State<loginpage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: 10,
                   children: [
-                    Text("Sign In", style: Theme.of(context).textTheme.headlineMedium),
+                    Text(
+                      "Sign In",
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
                     TextFormField(
                       controller: _emailcontroller,
-                      decoration: InputDecoration(labelText: "Username", hint: Text("Not case sensitive"), border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                        labelText: "Username",
+                        hint: Text("Not case sensitive"),
+                        border: OutlineInputBorder(),
+                      ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Username is required';
+                        if (value == null || value.isEmpty)
+                          return 'Username is required';
                         return null;
                       },
                     ),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        border: OutlineInputBorder(),
+                      ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Password is required';
+                        if (value == null || value.isEmpty)
+                          return 'Password is required';
                         return null;
                       },
                     ),
                     FilledButton(onPressed: submit, child: Text("Sign In")),
                     FilledButton(onPressed: signup, child: Text("Sign Up")),
-
                   ],
                 ),
               ),
@@ -168,30 +195,61 @@ class _MyHomePageState extends State<MyHomePage> {
   double _x = 50;
   double _y = 50;
   double _avgtime = 0.0000;
+  double _avgtime10 = 0.0000;
   Random randx = Random();
   Random randy = Random();
   List<Duration> times = [];
   var stopwatch = Stopwatch();
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      stopwatch.stop();
-      times.add(stopwatch.elapsed);
-      stopwatch.reset();
-      _avgtime = 0;
-      for (var time in times) {
-        _avgtime += time.inMilliseconds;
+  void _incrementCounter() async {
+    // This call to setState tells the Flutter framework that something has
+    // changed in this State, which causes it to rerun the build method below
+    // so that the display can reflect the updated values. If we changed
+    // _counter without calling setState(), then the build method would not be
+    // called again, and so nothing would appear to happen.
+    stopwatch.stop();
+    times.add(stopwatch.elapsed);
+    stopwatch.reset();
+    _avgtime = 0;
+    _avgtime10 = 0;
+    for (var time in times) {
+      _avgtime += time.inMilliseconds;
+    }
+    for (int i = times.length - 10; i < times.length && i >= 0; ++i) {
+      _avgtime10 += times[i].inMilliseconds;
+    }
+    _avgtime /= max(1, (times.length - 1));
+    _avgtime10 /= 10;
+    _avgtime /= 1e3;
+    _avgtime10 /= 1e3;
+    _avgtime *= 1000;
+    _avgtime10 *= 1000;
+    _avgtime = _avgtime.round() / 1000;
+    _avgtime10 = _avgtime10.round() / 1000;
+    _counter++;
+    if (times.length >= 10) {
+      try {
+        final row = await Supabase.instance.client
+            .from("Scores")
+            .select()
+            .eq("user_id", Supabase.instance.client.auth.currentUser!.id)
+            .single();
+        print("Supabase score: ${row["highscore"]}");
+        print("Current score: $_avgtime10");
+        if (row["highscore"] > _avgtime10) {
+          await Supabase.instance.client.from("Scores").upsert({
+            "user_id": Supabase.instance.client.auth.currentUser!.id,
+            "highscore": _avgtime10,
+          });
+        }
+      } catch (e) {
+        await Supabase.instance.client.from("Scores").insert({
+          "user_id": Supabase.instance.client.auth.currentUser!.id,
+          "highscore": _avgtime10,
+        });
       }
-      _avgtime /= max(1, (times.length - 1));
-      _avgtime /= 1e3;
-      _avgtime *= 1000;
-      _avgtime = _avgtime.round() / 1000;
-      _counter++;
+    }
+    setState(() {
       _x = randx.nextDouble() * 100;
       _y = randy.nextDouble() * 100;
       stopwatch.start();
@@ -229,7 +287,7 @@ class _MyHomePageState extends State<MyHomePage> {
               // wireframe for each widget.
               mainAxisAlignment: .center,
               children: [
-                Text(widget.username+' whacked a Mole this many times:'),
+                Text(widget.username + ' whacked a Mole this many times:'),
                 Text(
                   '$_counter',
                   style: Theme.of(context).textTheme.headlineMedium,
@@ -237,6 +295,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 const Text("Avg time taken:"),
                 Text(
                   '$_avgtime' + 's',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const Text(
+                  "Avg time taken for last 10 thingies (highscore from this):",
+                ),
+                Text(
+                  '$_avgtime10' + 's',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ],
